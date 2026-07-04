@@ -3,19 +3,21 @@
 import { useState } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { generateWallet, isValidSecretKey, walletFromSecret } from "@/lib/stellar";
+import { connectAlbedo, connectFreighter } from "@/lib/wallets";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 
-type Mode = "choose" | "create" | "import";
+type Mode = "choose" | "import";
 
 export function WalletOnboarding() {
-  const { setWallet } = useWallet();
+  const { setConnection } = useWallet();
   const [mode, setMode] = useState<Mode>("choose");
   const [secretInput, setSecretInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState<"freighter" | "albedo" | null>(null);
 
   function handleCreate() {
     const wallet = generateWallet();
-    setWallet(wallet);
+    setConnection({ kind: "local", ...wallet });
   }
 
   function handleImport(e: React.FormEvent) {
@@ -25,7 +27,21 @@ export function WalletOnboarding() {
       setError("Geçersiz gizli anahtar. 'S' ile başlayan 56 karakterlik bir anahtar girin.");
       return;
     }
-    setWallet(walletFromSecret(secretInput));
+    setConnection({ kind: "local", ...walletFromSecret(secretInput) });
+  }
+
+  async function handleConnect(kind: "freighter" | "albedo") {
+    setError(null);
+    setConnecting(kind);
+    try {
+      const connection =
+        kind === "freighter" ? await connectFreighter() : await connectAlbedo();
+      setConnection(connection);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Cüzdan bağlantısı başarısız oldu.");
+    } finally {
+      setConnecting(null);
+    }
   }
 
   return (
@@ -33,7 +49,8 @@ export function WalletOnboarding() {
       <div className="text-center">
         <h1 className="text-2xl font-semibold text-white">Stellar Wallet</h1>
         <p className="mt-1 text-sm text-slate-400">
-          White Belt · Level 1 — Cüzdan oluştur, bakiye gör, testnet üzerinde işlem gönder.
+          Yellow Belt · Level 2 — Çoklu cüzdan, smart contract ve gerçek zamanlı
+          senkronizasyon.
         </p>
       </div>
 
@@ -53,7 +70,30 @@ export function WalletOnboarding() {
             onClick={() => setMode("import")}
             className="rounded-lg border border-slate-700 px-4 py-3 font-medium text-slate-200 transition hover:bg-slate-800"
           >
-            Mevcut Cüzdanı İçe Aktar
+            Gizli Anahtarla İçe Aktar
+          </button>
+
+          <div className="my-1 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-500">
+            <span className="h-px flex-1 bg-slate-800" />
+            harici cüzdanlar
+            <span className="h-px flex-1 bg-slate-800" />
+          </div>
+
+          <button
+            type="button"
+            disabled={connecting !== null}
+            onClick={() => handleConnect("freighter")}
+            className="rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-4 py-3 font-medium text-indigo-200 transition hover:bg-indigo-500/20 disabled:opacity-50"
+          >
+            {connecting === "freighter" ? "Bağlanıyor..." : "Freighter ile Bağlan"}
+          </button>
+          <button
+            type="button"
+            disabled={connecting !== null}
+            onClick={() => handleConnect("albedo")}
+            className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-4 py-3 font-medium text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-50"
+          >
+            {connecting === "albedo" ? "Bağlanıyor..." : "Albedo ile Bağlan"}
           </button>
         </div>
       )}
@@ -80,7 +120,10 @@ export function WalletOnboarding() {
             </button>
             <button
               type="button"
-              onClick={() => setMode("choose")}
+              onClick={() => {
+                setMode("choose");
+                setError(null);
+              }}
               className="rounded-lg border border-slate-700 px-4 py-2 font-medium text-slate-200 transition hover:bg-slate-800"
             >
               Geri
@@ -88,6 +131,8 @@ export function WalletOnboarding() {
           </div>
         </form>
       )}
+
+      {mode === "choose" && error && <p className="text-sm text-rose-400">{error}</p>}
     </div>
   );
 }

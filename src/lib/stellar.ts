@@ -116,24 +116,33 @@ export interface SendPaymentResult {
   ledger: number;
 }
 
-export async function sendPayment({
-  secretKey,
+export interface BuildPaymentParams {
+  sourcePublicKey: string;
+  destination: string;
+  amount: string;
+  memo?: string;
+}
+
+/**
+ * İmzasız bir payment işlemi kurar ve XDR olarak döndürür.
+ * İmzalama cüzdan türüne göre dışarıda yapılır (yerel keypair,
+ * Freighter veya Albedo) — bkz. lib/wallets.ts signWithWallet.
+ */
+export async function buildPaymentTransaction({
+  sourcePublicKey,
   destination,
   amount,
   memo,
-}: SendPaymentParams): Promise<SendPaymentResult> {
-  const sourceKeypair = Keypair.fromSecret(secretKey.trim());
-  const sourcePublicKey = sourceKeypair.publicKey();
-
+}: BuildPaymentParams): Promise<string> {
   const destinationTrimmed = destination.trim();
   if (!isValidPublicKey(destinationTrimmed)) {
-    throw new Error("Destination address is not a valid Stellar public key.");
+    throw new Error("Alıcı adresi geçerli bir Stellar public key değil.");
   }
 
   const destinationFunded = await accountExists(destinationTrimmed);
   if (!destinationFunded) {
     throw new Error(
-      "Destination account does not exist on the testnet yet. It must be funded (e.g. via Friendbot) before it can receive a payment."
+      "Alıcı hesap testnet üzerinde henüz mevcut değil. Ödeme alabilmesi için önce (örn. Friendbot ile) fonlanması gerekir."
     );
   }
 
@@ -154,9 +163,32 @@ export async function sendPayment({
     builder.addMemo(Memo.text(memo.slice(0, 28)));
   }
 
-  const transaction = builder.setTimeout(60).build();
-  transaction.sign(sourceKeypair);
+  return builder.setTimeout(120).build().toXDR();
+}
 
+/** İmzalı XDR'ı Horizon'a gönderir. */
+export async function submitSignedXdr(signedXdr: string): Promise<SendPaymentResult> {
+  const transaction = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+  const result = await server.submitTransaction(transaction);
+  return { hash: result.hash, ledger: result.ledger };
+}
+
+/** Yerel gizli anahtarla tek adımda ödeme (Level 1 akışı). */
+export async function sendPayment({
+  secretKey,
+  destination,
+  amount,
+  memo,
+}: SendPaymentParams): Promise<SendPaymentResult> {
+  const sourceKeypair = Keypair.fromSecret(secretKey.trim());
+  const xdr = await buildPaymentTransaction({
+    sourcePublicKey: sourceKeypair.publicKey(),
+    destination,
+    amount,
+    memo,
+  });
+  const transaction = TransactionBuilder.fromXDR(xdr, NETWORK_PASSPHRASE);
+  transaction.sign(sourceKeypair);
   const result = await server.submitTransaction(transaction);
   return { hash: result.hash, ledger: result.ledger };
 }

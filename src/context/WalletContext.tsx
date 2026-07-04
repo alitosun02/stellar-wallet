@@ -8,23 +8,25 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { StellarWallet } from "@/lib/stellar";
+import type { WalletConnection } from "@/lib/wallets";
 
 const STORAGE_KEY = "stellar-wallet-session";
 
 interface WalletContextValue {
-  wallet: StellarWallet | null;
-  setWallet: (wallet: StellarWallet) => void;
-  clearWallet: () => void;
+  connection: WalletConnection | null;
+  setConnection: (connection: WalletConnection) => void;
+  clearConnection: () => void;
 }
 
 const WalletContext = createContext<WalletContextValue | undefined>(undefined);
 
-function readStoredWallet(): StellarWallet | null {
+function readStoredConnection(): WalletConnection | null {
   const stored = window.sessionStorage.getItem(STORAGE_KEY);
   if (!stored) return null;
   try {
-    return JSON.parse(stored) as StellarWallet;
+    const parsed = JSON.parse(stored) as WalletConnection;
+    if (!parsed.kind || !parsed.publicKey) return null;
+    return parsed;
   } catch {
     window.sessionStorage.removeItem(STORAGE_KEY);
     return null;
@@ -34,21 +36,23 @@ function readStoredWallet(): StellarWallet | null {
 // This provider is only ever mounted client-side (see WalletApp's ssr: false
 // dynamic import), so it's safe to read sessionStorage synchronously here.
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [wallet, setWalletState] = useState<StellarWallet | null>(readStoredWallet);
+  const [connection, setConnectionState] = useState<WalletConnection | null>(
+    readStoredConnection
+  );
 
-  const setWallet = useCallback((next: StellarWallet) => {
-    setWalletState(next);
+  const setConnection = useCallback((next: WalletConnection) => {
+    setConnectionState(next);
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }, []);
 
-  const clearWallet = useCallback(() => {
-    setWalletState(null);
+  const clearConnection = useCallback(() => {
+    setConnectionState(null);
     window.sessionStorage.removeItem(STORAGE_KEY);
   }, []);
 
   const value = useMemo(
-    () => ({ wallet, setWallet, clearWallet }),
-    [wallet, setWallet, clearWallet]
+    () => ({ connection, setConnection, clearConnection }),
+    [connection, setConnection, clearConnection]
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

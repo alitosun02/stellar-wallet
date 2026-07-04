@@ -1,32 +1,52 @@
-# Stellar Wallet — White Belt (Level 1)
+# Stellar Wallet — Yellow Belt (Level 2)
 
 **Stellar Journey to Mastery: Monthly Builder Challenges** programının Builder Track / Belt Progression
-yolunda **⚪️ White Belt — Level 1** seviyesi için geliştirilmiş demo uygulama.
+yolunda geliştirilen cüzdan uygulaması. Şu anki seviye: **🟡 Yellow Belt — Level 2**
+(Level 1 ⚪️ tamamlandı — git geçmişine bakın).
 
-> Level 1 hedefi: *"Build wallets, handle balances, and submit your first on-chain transactions on Stellar."*
+> Level 2 hedefi: *"Work with multi-wallet integrations, smart contracts, transaction handling, and real-time event synchronization."*
 
-Bu uygulama, Stellar **Testnet** üzerinde çalışan, tarayıcı tabanlı bir cüzdan istemcisidir:
+Stellar **Testnet** üzerinde çalışan, tarayıcı tabanlı bir cüzdan istemcisidir.
 
-- 🔑 Yeni bir Stellar keypair oluşturma veya mevcut bir gizli anahtarla içe aktarma
-- 💰 Hesap bakiyesini (XLM) görüntüleme ve Friendbot ile testnet fonlaması alma
-- 📤 Başka bir Stellar adresine XLM ödemesi gönderme (gerçek, imzalanmış, testnet'e submit edilen işlem)
-- 📜 Hesabın son ödeme işlemlerini listeleme, Stellar Expert üzerinde görüntüleme
+## Özellikler
 
-## Neden bu mimari?
+### Level 1 — White Belt ⚪️
+- 🔑 Yeni Stellar keypair oluşturma veya gizli anahtarla içe aktarma
+- 💰 Hesap bakiyesi görüntüleme ve Friendbot ile testnet fonlaması
+- 📤 XLM ödemesi gönderme (imzalanıp testnet'e submit edilen gerçek işlem)
+- 📜 İşlem geçmişi + Stellar Expert bağlantıları
+
+### Level 2 — Yellow Belt 🟡
+- 👛 **Çoklu cüzdan entegrasyonu** — üç bağlantı yöntemi:
+  - Yerel keypair (oluştur / içe aktar)
+  - [Freighter](https://freighter.app) tarayıcı eklentisi (`@stellar/freighter-api`)
+  - [Albedo](https://albedo.link) web imzalayıcı (`@albedo-link/intent`, eklenti gerektirmez)
+- ✍️ **Birleşik işlem imzalama** — işlemler imzasız XDR olarak kurulur, bağlı cüzdan
+  türü ne olursa olsun aynı arayüzle imzalanır (`signWithWallet`)
+- 📡 **Gerçek zamanlı olay senkronizasyonu** — Horizon SSE akışı (`payments().stream()`)
+  ile gelen/giden ödemeler anında yakalanır: bakiye ve geçmiş otomatik yenilenir,
+  ekranda canlı bildirim (toast) gösterilir
+- 📜 **Smart contract etkileşimi (Soroban)** — XLM'in Stellar Asset Contract'ı (SAC) ile:
+  - `balance` fonksiyonu `simulateTransaction` ile okunur (salt-okunur kontrat çağrısı)
+  - `transfer` fonksiyonu `InvokeHostFunction` işlemiyle invoke edilir
+    (prepare → sign → send → poll akışı, Soroban RPC üzerinden)
+
+## Mimari Kararlar
 
 | Karar | Gerekçe |
 |---|---|
-| **Next.js 16 (App Router) + TypeScript + Tailwind** | İleriki seviyelerde (Soroban akıllı kontratlar, Freighter cüzdan entegrasyonu, çoklu cüzdan) büyümeye uygun, endüstri standardı bir temel. |
-| **Client-only render (`ssr:false`)** | Gizli anahtar hiçbir zaman sunucuya/SSR'a dokunmuyor — tamamen tarayıcıda üretiliyor, imzalanıyor ve tutuluyor. |
-| **`sessionStorage`, kalıcı depolama yok** | Cüzdan verisi yalnızca sekme açıkken bellekte kalır; sekme kapanınca silinir. Bu bir demo/eğitim uygulamasıdır, gerçek varlık saklama amacı taşımaz. |
-| **`@stellar/stellar-sdk` (v16)** | Stellar ekosisteminin resmi JS/TS SDK'sı; Horizon testnet API'si ve işlem imzalama/gönderme için kullanılıyor. |
+| **Next.js 16 (App Router) + TypeScript + Tailwind** | İleriki seviyelere (özel Soroban kontratları, mini dApp, MVP) büyümeye uygun temel. |
+| **Client-only render (`ssr:false`)** | Gizli anahtar hiçbir zaman sunucuya/SSR'a dokunmuyor. |
+| **`sessionStorage`, kalıcı depolama yok** | Cüzdan verisi sekme kapanınca silinir; demo/eğitim uygulaması. |
+| **Freighter + Albedo (kit yerine doğrudan)** | `stellar-wallets-kit` ağır bağımlılıklar getiriyor (Trezor, WalletConnect); iki resmi hafif API ile aynı gereksinim daha sağlam karşılanıyor. |
+| **SAC kontratı (native XLM)** | Level 2'de "smart contract ile çalışma" gereksinimi, zincirde deploy'lu gerçek bir kontrat olan SAC ile karşılanıyor; Level 3'te özel Rust/Soroban kontratı yazılıp deploy edilecek. |
 
 ## ⚠️ Güvenlik Notu
 
 Bu proje **yalnızca Stellar Testnet** için tasarlanmıştır. Gerçek (mainnet) varlıkları temsil eden bir
-gizli anahtarı **asla** bu uygulamaya girmeyin. Gizli anahtar tarayıcı sekmesinin `sessionStorage`'ında
-düz metin olarak tutulur — bu, bir demo/öğrenme uygulaması için kabul edilebilir, ancak üretim ortamı için
-yeterli değildir (ileri seviyelerde Freighter gibi harici imzalayıcılara geçilecektir).
+gizli anahtarı **asla** bu uygulamaya girmeyin. Yerel cüzdan modunda gizli anahtar sekmenin
+`sessionStorage`'ında tutulur — üretim kullanımı için Freighter/Albedo modlarını tercih edin
+(anahtar hiçbir zaman uygulamaya girmez, imza harici cüzdanda atılır).
 
 ## Kurulum
 
@@ -39,32 +59,38 @@ Tarayıcıda [http://localhost:3000](http://localhost:3000) adresini açın.
 
 ## Kullanım Akışı
 
-1. **Yeni Cüzdan Oluştur** ya da **Mevcut Cüzdanı İçe Aktar** ile bir Stellar keypair yükleyin.
-2. Hesap testnet'te henüz aktif değilse **Friendbot ile Fonla** butonuyla 10.000 testnet XLM alın.
-3. **Ödeme Gönder** formundan başka bir (fonlanmış) testnet adresine XLM gönderin.
-4. **İşlem Geçmişi** bölümünden gönderilen/alınan ödemeleri ve Stellar Expert bağlantılarını görüntüleyin.
+1. Cüzdan bağlayın: **Yeni Cüzdan Oluştur**, **Gizli Anahtarla İçe Aktar**, **Freighter** veya **Albedo**.
+2. Hesap aktif değilse **Friendbot ile Fonla** ile 10.000 testnet XLM alın.
+3. **Ödeme Gönder** ile klasik payment işlemi gönderin (bağlı cüzdan imzalar).
+4. **Smart Contract (Soroban)** panelinden bakiyeyi kontrattan okuyun veya
+   `transfer` fonksiyonunu invoke ederek XLM gönderin.
+5. Başka bir hesaptan size ödeme geldiğinde canlı bildirimi ve otomatik güncellenen
+   bakiye/geçmişi izleyin (sayfa yenilemeye gerek yok).
 
 ## Proje Yapısı
 
 ```
 src/
-  lib/stellar.ts            Stellar SDK ile tüm on-chain etkileşimler (keypair, bakiye, ödeme, geçmiş)
-  context/WalletContext.tsx  Cüzdan oturum durumu (sessionStorage senkronizasyonu)
-  components/                UI bileşenleri (onboarding, dashboard, bakiye, ödeme formu, geçmiş)
-  app/                        Next.js App Router giriş noktaları
+  lib/stellar.ts             Horizon etkileşimleri (keypair, bakiye, ödeme kurma/gönderme, geçmiş)
+  lib/soroban.ts             Soroban RPC + SAC kontrat çağrıları (balance simulate, transfer invoke)
+  lib/wallets.ts             Çoklu cüzdan soyutlaması (yerel / Freighter / Albedo) + birleşik imzalama
+  hooks/usePaymentStream.ts  Horizon SSE gerçek zamanlı ödeme akışı
+  context/WalletContext.tsx  Cüzdan bağlantı durumu (sessionStorage senkronizasyonu)
+  components/                UI bileşenleri (onboarding, dashboard, kontrat paneli, canlı bildirim...)
+  app/                       Next.js App Router giriş noktaları
 ```
 
 ## Teknoloji
 
 - [Next.js 16](https://nextjs.org) (App Router, Turbopack)
-- TypeScript
-- Tailwind CSS
-- [`@stellar/stellar-sdk`](https://github.com/stellar/js-stellar-sdk) — Horizon Testnet + işlem oluşturma/imzalama
+- TypeScript, Tailwind CSS
+- [`@stellar/stellar-sdk`](https://github.com/stellar/js-stellar-sdk) — Horizon + Soroban RPC
+- [`@stellar/freighter-api`](https://docs.freighter.app) — Freighter cüzdan entegrasyonu
+- [`@albedo-link/intent`](https://albedo.link/docs) — Albedo web imzalayıcı
 
 ## Yol Haritası (Sonraki Belt'ler)
 
-- 🟡 Yellow Belt (Level 2): Çoklu cüzdan entegrasyonu (Freighter), akıllı kontrat (Soroban) etkileşimi, gerçek zamanlı olay senkronizasyonu.
-- 🟠 Orange Belt (Level 3): Gelişmiş akıllı kontratlarla eksiksiz bir mini dApp; test ve deploy süreçleri.
+- 🟠 Orange Belt (Level 3): Özel Soroban kontratıyla eksiksiz bir mini dApp; test ve deploy süreçleri.
 - 🟢 Green Belt (Level 4): Üretime hazır MVP.
 - 🔵 Blue Belt (Level 5): 50 kullanıcıya ölçekleme, pitch deck ve demo.
 - ⚫️ Black Belt (Level 6): Mainnet lansmanı, 20+ gerçek kullanıcı, güvenlik denetimi.

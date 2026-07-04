@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stellar Wallet — Level 1",
+  title: "Stellar Wallet — Rise In Builder Challenge",
   description:
-    "Stellar testnet üzerinde cüzdan oluşturma, bakiye görüntüleme ve ödeme gönderme demo uygulaması.",
+    "Stellar testnet üzerinde çoklu cüzdan desteği, smart contract etkileşimi ve gerçek zamanlı senkronizasyon sunan cüzdan uygulaması.",
 };
 
 export default function RootLayout({

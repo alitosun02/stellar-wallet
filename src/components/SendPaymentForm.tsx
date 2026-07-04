@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { explorerTxUrl, sendPayment } from "@/lib/stellar";
+import { buildPaymentTransaction, explorerTxUrl, submitSignedXdr } from "@/lib/stellar";
+import { signWithWallet, WALLET_LABELS, type WalletConnection } from "@/lib/wallets";
 
 export function SendPaymentForm({
-  secretKey,
+  connection,
   onSent,
 }: {
-  secretKey: string;
+  connection: WalletConnection;
   onSent: () => void;
 }) {
   const [destination, setDestination] = useState("");
@@ -23,12 +24,14 @@ export function SendPaymentForm({
     setSuccessHash(null);
     setSubmitting(true);
     try {
-      const result = await sendPayment({
-        secretKey,
+      const xdr = await buildPaymentTransaction({
+        sourcePublicKey: connection.publicKey,
         destination,
         amount,
         memo: memo || undefined,
       });
+      const signedXdr = await signWithWallet(connection, xdr);
+      const result = await submitSignedXdr(signedXdr);
       setSuccessHash(result.hash);
       setDestination("");
       setAmount("");
@@ -43,9 +46,14 @@ export function SendPaymentForm({
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
-      <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">
-        Ödeme Gönder
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">
+          Ödeme Gönder
+        </h2>
+        <span className="text-xs text-slate-500">
+          İmza: {WALLET_LABELS[connection.kind]}
+        </span>
+      </div>
 
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm text-slate-300">
@@ -89,7 +97,11 @@ export function SendPaymentForm({
           disabled={submitting}
           className="mt-1 rounded-lg bg-cyan-500 px-4 py-2 font-medium text-slate-950 transition hover:bg-cyan-400 disabled:opacity-50"
         >
-          {submitting ? "Gönderiliyor..." : "Gönder"}
+          {submitting
+            ? connection.kind === "local"
+              ? "Gönderiliyor..."
+              : "Cüzdan onayı bekleniyor..."
+            : "Gönder"}
         </button>
 
         {error && <p className="text-sm text-rose-400">{error}</p>}

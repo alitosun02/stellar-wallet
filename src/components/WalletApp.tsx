@@ -5,12 +5,8 @@ import { WalletDashboard } from "./WalletDashboard";
 import { WalletOnboarding } from "./WalletOnboarding";
 
 function WalletScreen() {
-  const { wallet } = useWallet();
-  return wallet ? (
-    <WalletDashboard publicKey={wallet.publicKey} secretKey={wallet.secretKey} />
-  ) : (
-    <WalletOnboarding />
-  );
+  const { connection } = useWallet();
+  return connection ? <WalletDashboard connection={connection} /> : <WalletOnboarding />;
 }
 
 export default function WalletApp() {
