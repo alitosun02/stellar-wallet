@@ -107,17 +107,20 @@ export function SendPaymentForm({
         {error && <p className="text-sm text-rose-400">{error}</p>}
 
         {successHash && (
-          <p className="text-sm text-emerald-400">
-            İşlem başarılı!{" "}
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+            <p className="font-medium">✅ İşlem başarılı! (Testnet&apos;e yazıldı)</p>
+            <p className="mt-1 break-all font-mono text-xs text-emerald-200/80">
+              Hash: {successHash}
+            </p>
             <a
               href={explorerTxUrl(successHash)}
               target="_blank"
               rel="noreferrer"
-              className="underline"
+              className="mt-1 inline-block text-xs underline"
             >
               Stellar Expert&apos;te görüntüle
             </a>
-          </p>
+          </div>
         )}
       </form>
     </div>

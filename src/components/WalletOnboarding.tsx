@@ -49,8 +49,7 @@ export function WalletOnboarding() {
       <div className="text-center">
         <h1 className="text-2xl font-semibold text-white">Stellar Wallet</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Yellow Belt · Level 2 — Çoklu cüzdan, smart contract ve gerçek zamanlı
-          senkronizasyon.
+          Cüzdanını bağla, bakiyeni gör, Stellar testnet üzerinde işlem gönder.
         </p>
       </div>
 
@@ -60,8 +59,33 @@ export function WalletOnboarding() {
         <div className="flex flex-col gap-3">
           <button
             type="button"
+            disabled={connecting !== null}
+            onClick={() => handleConnect("freighter")}
+            className="rounded-lg bg-cyan-500 px-4 py-3 font-medium text-slate-950 transition hover:bg-cyan-400 disabled:opacity-50"
+          >
+            {connecting === "freighter"
+              ? "Freighter'a bağlanılıyor..."
+              : "🚀 Freighter Cüzdanını Bağla"}
+          </button>
+          <button
+            type="button"
+            disabled={connecting !== null}
+            onClick={() => handleConnect("albedo")}
+            className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-4 py-3 font-medium text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-50"
+          >
+            {connecting === "albedo" ? "Bağlanıyor..." : "Albedo ile Bağlan"}
+          </button>
+
+          <div className="my-1 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-500">
+            <span className="h-px flex-1 bg-slate-800" />
+            veya yerel test cüzdanı
+            <span className="h-px flex-1 bg-slate-800" />
+          </div>
+
+          <button
+            type="button"
             onClick={handleCreate}
-            className="rounded-lg bg-cyan-500 px-4 py-3 font-medium text-slate-950 transition hover:bg-cyan-400"
+            className="rounded-lg border border-slate-700 px-4 py-3 font-medium text-slate-200 transition hover:bg-slate-800"
           >
             Yeni Cüzdan Oluştur
           </button>
@@ -71,29 +95,6 @@ export function WalletOnboarding() {
             className="rounded-lg border border-slate-700 px-4 py-3 font-medium text-slate-200 transition hover:bg-slate-800"
           >
             Gizli Anahtarla İçe Aktar
-          </button>
-
-          <div className="my-1 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-500">
-            <span className="h-px flex-1 bg-slate-800" />
-            harici cüzdanlar
-            <span className="h-px flex-1 bg-slate-800" />
-          </div>
-
-          <button
-            type="button"
-            disabled={connecting !== null}
-            onClick={() => handleConnect("freighter")}
-            className="rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-4 py-3 font-medium text-indigo-200 transition hover:bg-indigo-500/20 disabled:opacity-50"
-          >
-            {connecting === "freighter" ? "Bağlanıyor..." : "Freighter ile Bağlan"}
-          </button>
-          <button
-            type="button"
-            disabled={connecting !== null}
-            onClick={() => handleConnect("albedo")}
-            className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-4 py-3 font-medium text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-50"
-          >
-            {connecting === "albedo" ? "Bağlanıyor..." : "Albedo ile Bağlan"}
           </button>
         </div>
       )}

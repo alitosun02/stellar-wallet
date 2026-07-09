@@ -54,7 +54,10 @@ export async function signWithWallet(
   }
 }
 
-/** Freighter eklentisine bağlanır ve adresi döndürür. */
+/**
+ * Freighter eklentisine bağlanır ve adresi döndürür.
+ * Akış: isConnected → setAllowed (izin) → getAddress (adres) → getNetwork (ağ kontrolü).
+ */
 export async function connectFreighter(): Promise<WalletConnection> {
   const freighter = await import("@stellar/freighter-api");
 
@@ -68,9 +71,24 @@ export async function connectFreighter(): Promise<WalletConnection> {
     );
   }
 
-  const access = await freighter.requestAccess();
-  if (access.error) {
-    throw new Error(`Freighter erişimi reddedildi: ${access.error}`);
+  // Uygulamayı Freighter'ın izin listesine ekle (kullanıcı onayı ister).
+  const allowed = await freighter.setAllowed();
+  if (allowed.error) {
+    throw new Error(`Freighter erişimi reddedildi: ${allowed.error}`);
+  }
+
+  // İzin verilen uygulama için aktif hesabın public key'ini al.
+  let address = (await freighter.getAddress()).address;
+  if (!address) {
+    // Bazı sürümlerde adres ancak requestAccess sonrası döner.
+    const access = await freighter.requestAccess();
+    if (access.error) {
+      throw new Error(`Freighter erişimi reddedildi: ${access.error}`);
+    }
+    address = access.address;
+  }
+  if (!address) {
+    throw new Error("Freighter hesap adresi alınamadı.");
   }
 
   const network = await freighter.getNetwork();
@@ -80,7 +98,7 @@ export async function connectFreighter(): Promise<WalletConnection> {
     );
   }
 
-  return { kind: "freighter", publicKey: access.address };
+  return { kind: "freighter", publicKey: address };
 }
 
 /** Albedo web intent'i ile public key ister (eklenti gerektirmez). */
