@@ -111,6 +111,84 @@ async function main() {
   await page.screenshot({ path: `${OUT_DIR}/03-transaction-success.png` });
   console.log("saved 03-transaction-success.png");
 
+  // ---- Level 2 görüntüleri ----
+
+  // 4) Soroban kontrat paneli: bakiye oku + kontrat üzerinden transfer
+  await page.evaluate(() => {
+    const panel = [...document.querySelectorAll("h2")]
+      .find((h) => h.textContent.includes("Smart Contract"))
+      .closest("div.rounded-2xl");
+    const readBtn = [...panel.querySelectorAll("button")].find((b) =>
+      b.textContent.includes("Kontrattan Bakiye")
+    );
+    readBtn.click();
+  });
+  await page.waitForFunction(
+    () => {
+      const panel = [...document.querySelectorAll("h2")]
+        .find((h) => h.textContent.includes("Smart Contract"))
+        .closest("div.rounded-2xl");
+      return /XLM/.test(panel.textContent) && !panel.textContent.includes("Okunuyor");
+    },
+    { timeout: 30000 }
+  );
+
+  await page.evaluate(
+    ({ destination, setValSrc }) => {
+      const setVal = eval(setValSrc);
+      const panel = [...document.querySelectorAll("h2")]
+        .find((h) => h.textContent.includes("Smart Contract"))
+        .closest("div.rounded-2xl");
+      const inputs = panel.querySelectorAll("input");
+      setVal(inputs[0], destination);
+      setVal(inputs[1], "15");
+      const btn = [...panel.querySelectorAll("button")].find((b) =>
+        b.textContent.includes("Transfer Et")
+      );
+      btn.click();
+    },
+    { destination, setValSrc: `(${setReactValue.toString()})` }
+  );
+  await page.waitForFunction(
+    () => document.body.textContent.includes("Kontrat transferi başarılı"),
+    { timeout: 60000 }
+  );
+  await page.evaluate(() => {
+    [...document.querySelectorAll("h2")]
+      .find((h) => h.textContent.includes("Smart Contract"))
+      .scrollIntoView({ block: "center" });
+  });
+  await new Promise((r) => setTimeout(r, 500));
+  await page.screenshot({ path: `${OUT_DIR}/04-soroban-contract.png` });
+  console.log("saved 04-soroban-contract.png");
+
+  // 5) Gerçek zamanlı bildirim: dışarıdan ödeme gönder, toast'ı yakala
+  const walletAddress = await page.evaluate(
+    () => JSON.parse(sessionStorage.getItem("stellar-wallet-session")).publicKey
+  );
+  const horizon = new Horizon.Server("https://horizon-testnet.stellar.org");
+  const senderKp = Keypair.random();
+  await fetch(`https://friendbot.stellar.org?addr=${senderKp.publicKey()}`);
+  const senderAcc = await horizon.loadAccount(senderKp.publicKey());
+  const liveTx = new TransactionBuilder(senderAcc, {
+    fee: BASE_FEE,
+    networkPassphrase: Networks.TESTNET,
+  })
+    .addOperation(
+      Operation.payment({ destination: walletAddress, asset: Asset.native(), amount: "42" })
+    )
+    .setTimeout(60)
+    .build();
+  liveTx.sign(senderKp);
+  await horizon.submitTransaction(liveTx);
+  console.log("external live payment submitted");
+
+  await page.waitForSelector("div.fixed.bottom-6", { timeout: 30000 });
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await new Promise((r) => setTimeout(r, 300));
+  await page.screenshot({ path: `${OUT_DIR}/05-realtime-notification.png` });
+  console.log("saved 05-realtime-notification.png");
+
   await browser.close();
   console.log("done");
 }

@@ -76,6 +76,14 @@ This repo has progressed to Level 2 on the same codebase:
   - `balance` read via `simulateTransaction` (read-only contract call)
   - `transfer` invoked as a real `InvokeHostFunction` transaction (prepare → sign → send → poll) over Soroban RPC
 
+### Level 2 Screenshots
+
+#### Soroban smart contract panel — balance read from contract + successful contract transfer
+![Soroban contract interaction](docs/screenshots/04-soroban-contract.png)
+
+#### Real-time payment notification — incoming payment streamed live (SSE), history auto-updated
+![Real-time notification](docs/screenshots/05-realtime-notification.png)
+
 ## 🏗️ Project Structure
 
 ```
