@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { generateWallet, isValidSecretKey, walletFromSecret } from "@/lib/stellar";
+import { mapStellarError } from "@/lib/errors";
 import { connectAlbedo, connectFreighter } from "@/lib/wallets";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 
@@ -38,7 +39,8 @@ export function WalletOnboarding() {
         kind === "freighter" ? await connectFreighter() : await connectAlbedo();
       setConnection(connection);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Cüzdan bağlantısı başarısız oldu.");
+      const mapped = mapStellarError(err);
+      setError(`[${mapped.type}] ${mapped.message}`);
     } finally {
       setConnecting(null);
     }

@@ -7,6 +7,7 @@ import { explorerAccountUrl } from "@/lib/stellar";
 import { WALLET_LABELS, type WalletConnection } from "@/lib/wallets";
 import { BalanceCard } from "./BalanceCard";
 import { ContractPanel } from "./ContractPanel";
+import { CounterPanel } from "./CounterPanel";
 import { CopyField } from "./CopyField";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { LivePaymentToast, LiveStatusDot } from "./LiveActivity";
@@ -75,6 +76,8 @@ export function WalletDashboard({ connection }: { connection: WalletConnection }
       />
 
       <SendPaymentForm connection={connection} onSent={bumpRefresh} />
+
+      <CounterPanel connection={connection} />
 
       <ContractPanel connection={connection} onTransferred={bumpRefresh} />
 

@@ -65,20 +65,53 @@ Open [http://localhost:3000](http://localhost:3000).
 5. **See feedback** — success panel with transaction hash + [Stellar Expert](https://stellar.expert/explorer/testnet) link, or a descriptive error.
 6. **Watch live** — incoming/outgoing payments stream in real time (Horizon SSE): balance and history auto-update with a toast notification.
 
-## 🟡 Level 2 (Yellow Belt) Features — also included
+## 🟡 Level 2 (Yellow Belt)
 
-This repo has progressed to Level 2 on the same codebase:
+This repo has progressed to Level 2 on the same codebase.
 
-- 👛 **Multi-wallet integrations** — Freighter (`@stellar/freighter-api`), Albedo (`@albedo-link/intent`), and local keypair behind one unified interface
-- ✍️ **Unified transaction handling** — transactions are built as unsigned XDR and signed by whichever wallet is connected (`signWithWallet`)
-- 📡 **Real-time event synchronization** — Horizon SSE payment stream (`payments().forAccount().stream()`) with auto-refresh + live toasts
-- 📜 **Smart contract interaction (Soroban)** — the native XLM Stellar Asset Contract (SAC):
-  - `balance` read via `simulateTransaction` (read-only contract call)
-  - `transfer` invoked as a real `InvokeHostFunction` transaction (prepare → sign → send → poll) over Soroban RPC
+### ✅ Level 2 Requirements Coverage
+
+| Requirement | Implementation |
+|---|---|
+| **Contract deployed on testnet** | Custom `counter` Soroban contract (Rust) written, tested, and deployed by this project — source in [`contracts/counter`](contracts/counter) |
+| **Deployed contract address** | [`CCHEGI3ARKF6LGGLKQDBIPXSPD76DXHGOXO7SADH6ZUB3LUJ7YFGP437`](https://stellar.expert/explorer/testnet/contract/CCHEGI3ARKF6LGGLKQDBIPXSPD76DXHGOXO7SADH6ZUB3LUJ7YFGP437) |
+| **Contract called from the frontend** | `get_count` read via `simulateTransaction`; `increment` invoked with the connected wallet's signature (build → prepare → sign → send → poll) — see [`src/lib/counter.ts`](src/lib/counter.ts) |
+| **Transaction hash of a contract call** | [`fcb88855033354511e813c62d7378509c07ac8278c6344d39a5b97fe37b26a29`](https://stellar.expert/explorer/testnet/tx/fcb88855033354511e813c62d7378509c07ac8278c6344d39a5b97fe37b26a29) (frontend invoke) · deploy tx: [`a74729e3fb34146a9ec9b22bc320d993fd761181f7df7e04c8469e6ebe7719e7`](https://stellar.expert/explorer/testnet/tx/a74729e3fb34146a9ec9b22bc320d993fd761181f7df7e04c8469e6ebe7719e7) |
+| **3+ error types handled** | Centralized in [`src/lib/errors.ts`](src/lib/errors.ts) — see table below |
+| **Transaction status visible** | Every payment/contract call shows its lifecycle in the UI: ⏳ building → ✍️ signing → 🔄 pending → ✅ success / ❌ failed |
+| **Multi-wallet integrations** | Freighter (`@stellar/freighter-api`), Albedo (`@albedo-link/intent`), local test keypair — unified `signWithWallet` interface |
+| **Real-time event integration** | Horizon SSE payment stream (balance/history auto-update + live toast) **and** Soroban RPC `getEvents` polling for the contract's `Increment` events |
+| **2+ meaningful commits** | See git history (Level 1, Level 1 revision, Level 2, Level 2 contract...) |
+
+### Error handling (3+ types, all user-facing)
+
+| Type | Trigger | UI message |
+|---|---|---|
+| `WALLET_NOT_FOUND` | Freighter extension not installed | "Cüzdan bulunamadı: Freighter eklentisi kurulu değil..." |
+| `USER_REJECTED` | Signing declined in wallet | "İşlem reddedildi: imza isteği cüzdanda onaylanmadı." |
+| `INSUFFICIENT_BALANCE` | `tx_insufficient_balance` / `op_underfunded` from Horizon | "Yetersiz bakiye..." |
+| `DESTINATION_NOT_FOUND` | Recipient account not funded on testnet | "Alıcı hesap bulunamadı / henüz aktive edilmemiş..." |
+| `SOURCE_NOT_FOUND` | Sender account not funded yet | "Hesap bulunamadı: önce Friendbot ile fonlayın." |
+
+### The deployed contract (`contracts/counter`)
+
+A minimal but complete Soroban contract demonstrating **write** (`increment`, requires auth, publishes an `Increment` event) and **read** (`get_count`):
+
+```bash
+cd contracts/counter
+cargo test                                        # unit tests (3 increments asserted)
+cargo build --target wasm32v1-none --release      # compile to WASM
+stellar contract deploy \
+  --wasm target/wasm32v1-none/release/counter.wasm \
+  --source-account <your-key> --network testnet
+```
 
 ### Level 2 Screenshots
 
-#### Soroban smart contract panel — balance read from contract + successful contract transfer
+#### Counter dApp — deployed contract called from the frontend (tx status + contract events)
+![Counter contract](docs/screenshots/06-counter-contract.png)
+
+#### Soroban SAC panel — balance read from contract + successful contract transfer
 ![Soroban contract interaction](docs/screenshots/04-soroban-contract.png)
 
 #### Real-time payment notification — incoming payment streamed live (SSE), history auto-updated
@@ -87,13 +120,17 @@ This repo has progressed to Level 2 on the same codebase:
 ## 🏗️ Project Structure
 
 ```
+contracts/
+  counter/                   Custom Soroban contract (Rust): increment/get_count + Increment event, unit tests
 src/
   lib/stellar.ts             Horizon interactions (keypair, balances, payment build/submit, history)
   lib/wallets.ts             Multi-wallet abstraction (Freighter / Albedo / local) + unified signing
   lib/soroban.ts             Soroban RPC + SAC contract calls (balance simulate, transfer invoke)
+  lib/counter.ts             Deployed counter contract client (read, invoke w/ status, getEvents)
+  lib/errors.ts              Centralized error classification (wallet/balance/destination...)
   hooks/usePaymentStream.ts  Real-time Horizon SSE payment stream
   context/WalletContext.tsx  Wallet connection state (sessionStorage-backed)
-  components/                UI components (onboarding, dashboard, contract panel, live toasts...)
+  components/                UI components (onboarding, dashboard, contract panels, live toasts...)
   app/                       Next.js App Router entry points
 scripts/
   take-screenshots.mjs       Automated README screenshot generation (puppeteer-core)

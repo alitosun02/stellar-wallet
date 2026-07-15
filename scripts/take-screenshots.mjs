@@ -162,6 +162,34 @@ async function main() {
   await page.screenshot({ path: `${OUT_DIR}/04-soroban-contract.png` });
   console.log("saved 04-soroban-contract.png");
 
+  // 4b) Deploy ettiğimiz Counter kontratı: increment + tx durumu + eventler
+  await page.evaluate(() => {
+    const panel = [...document.querySelectorAll("h2")]
+      .find((h) => h.textContent.includes("Counter"))
+      .closest("div.rounded-2xl");
+    const btn = [...panel.querySelectorAll("button")].find((b) =>
+      b.textContent.includes("Artır")
+    );
+    btn.click();
+  });
+  await page.waitForFunction(
+    () => {
+      const panel = [...document.querySelectorAll("h2")]
+        .find((h) => h.textContent.includes("Counter"))
+        .closest("div.rounded-2xl");
+      return panel.textContent.includes("✅ Başarılı");
+    },
+    { timeout: 90000 }
+  );
+  await page.evaluate(() => {
+    [...document.querySelectorAll("h2")]
+      .find((h) => h.textContent.includes("Counter"))
+      .scrollIntoView({ block: "center" });
+  });
+  await new Promise((r) => setTimeout(r, 500));
+  await page.screenshot({ path: `${OUT_DIR}/06-counter-contract.png` });
+  console.log("saved 06-counter-contract.png");
+
   // 5) Gerçek zamanlı bildirim: dışarıdan ödeme gönder, toast'ı yakala
   const walletAddress = await page.evaluate(
     () => JSON.parse(sessionStorage.getItem("stellar-wallet-session")).publicKey

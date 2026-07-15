@@ -1,8 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { mapStellarError, type MappedError } from "@/lib/errors";
 import { buildPaymentTransaction, explorerTxUrl, submitSignedXdr } from "@/lib/stellar";
 import { signWithWallet, WALLET_LABELS, type WalletConnection } from "@/lib/wallets";
+
+type PaymentStatus = "idle" | "signing" | "pending" | "success" | "failed";
+
+const STATUS_LABELS: Record<PaymentStatus, string> = {
+  idle: "",
+  signing: "✍️ Cüzdan imzası bekleniyor...",
+  pending: "🔄 İşlem gönderildi, onay bekleniyor (pending)...",
+  success: "✅ Başarılı (success)",
+  failed: "❌ Başarısız (failed)",
+};
 
 export function SendPaymentForm({
   connection,
@@ -14,15 +25,16 @@ export function SendPaymentForm({
   const [destination, setDestination] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<PaymentStatus>("idle");
+  const [error, setError] = useState<MappedError | null>(null);
   const [successHash, setSuccessHash] = useState<string | null>(null);
+
+  const busy = status === "signing" || status === "pending";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSuccessHash(null);
-    setSubmitting(true);
     try {
       const xdr = await buildPaymentTransaction({
         sourcePublicKey: connection.publicKey,
@@ -30,17 +42,19 @@ export function SendPaymentForm({
         amount,
         memo: memo || undefined,
       });
+      setStatus("signing");
       const signedXdr = await signWithWallet(connection, xdr);
+      setStatus("pending");
       const result = await submitSignedXdr(signedXdr);
+      setStatus("success");
       setSuccessHash(result.hash);
       setDestination("");
       setAmount("");
       setMemo("");
       onSent();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "İşlem gönderilemedi");
-    } finally {
-      setSubmitting(false);
+      setStatus("failed");
+      setError(mapStellarError(err));
     }
   }
 
@@ -94,17 +108,32 @@ export function SendPaymentForm({
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={busy}
           className="mt-1 rounded-lg bg-cyan-500 px-4 py-2 font-medium text-slate-950 transition hover:bg-cyan-400 disabled:opacity-50"
         >
-          {submitting
-            ? connection.kind === "local"
-              ? "Gönderiliyor..."
-              : "Cüzdan onayı bekleniyor..."
-            : "Gönder"}
+          {busy ? "İşleniyor..." : "Gönder"}
         </button>
 
-        {error && <p className="text-sm text-rose-400">{error}</p>}
+        {status !== "idle" && (
+          <p
+            className={`text-sm ${
+              status === "success"
+                ? "text-emerald-400"
+                : status === "failed"
+                  ? "text-rose-400"
+                  : "text-amber-300"
+            }`}
+          >
+            {STATUS_LABELS[status]}
+          </p>
+        )}
+
+        {error && (
+          <p className="text-sm text-rose-400">
+            <span className="font-mono text-xs text-rose-500">[{error.type}]</span>{" "}
+            {error.message}
+          </p>
+        )}
 
         {successHash && (
           <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
