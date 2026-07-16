@@ -24,19 +24,9 @@ export const sorobanServer = new rpc.Server(SOROBAN_RPC_URL);
  */
 export const NATIVE_SAC_CONTRACT_ID = Asset.native().contractId(NETWORK_PASSPHRASE);
 
-const STROOPS_PER_XLM = 10_000_000n;
+import { xlmToStroops, stroopsToXlm } from "./units";
 
-export function xlmToStroops(xlm: string): bigint {
-  const [whole = "0", frac = ""] = xlm.trim().split(".");
-  const fracPadded = (frac + "0000000").slice(0, 7);
-  return BigInt(whole) * STROOPS_PER_XLM + BigInt(fracPadded || "0");
-}
-
-export function stroopsToXlm(stroops: bigint): string {
-  const whole = stroops / STROOPS_PER_XLM;
-  const frac = (stroops % STROOPS_PER_XLM).toString().padStart(7, "0").replace(/0+$/, "");
-  return frac ? `${whole}.${frac}` : whole.toString();
-}
+export { xlmToStroops, stroopsToXlm };
 
 /**
  * SAC `balance` fonksiyonunu simulateTransaction ile (imza gerektirmeden,
