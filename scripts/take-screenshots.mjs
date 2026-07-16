@@ -211,11 +211,22 @@ async function main() {
   await horizon.submitTransaction(liveTx);
   console.log("external live payment submitted");
 
-  await page.waitForSelector("div.fixed.bottom-6", { timeout: 30000 });
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await new Promise((r) => setTimeout(r, 300));
-  await page.screenshot({ path: `${OUT_DIR}/05-realtime-notification.png` });
-  console.log("saved 05-realtime-notification.png");
+  try {
+    await page.waitForSelector("div.fixed.bottom-6", { timeout: 30000 });
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await new Promise((r) => setTimeout(r, 300));
+    await page.screenshot({ path: `${OUT_DIR}/05-realtime-notification.png` });
+    console.log("saved 05-realtime-notification.png");
+  } catch {
+    console.log("toast yakalanamadı, 05 atlandı (öncekini koru)");
+  }
+
+  // 7) Mobil uyumlu görünüm (375x812) — tüm dashboard tek uzun ekran görüntüsü
+  await page.setViewport({ width: 375, height: 812, deviceScaleFactor: 2 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await new Promise((r) => setTimeout(r, 800));
+  await page.screenshot({ path: `${OUT_DIR}/07-mobile-responsive.png`, fullPage: true });
+  console.log("saved 07-mobile-responsive.png");
 
   await browser.close();
   console.log("done");
