@@ -12,6 +12,7 @@ import { CopyField } from "./CopyField";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { LivePaymentToast, LiveStatusDot } from "./LiveActivity";
 import { SendPaymentForm } from "./SendPaymentForm";
+import { TipJarPanel } from "./TipJarPanel";
 import { TransactionHistory } from "./TransactionHistory";
 
 export function WalletDashboard({ connection }: { connection: WalletConnection }) {
@@ -76,6 +77,8 @@ export function WalletDashboard({ connection }: { connection: WalletConnection }
       />
 
       <SendPaymentForm connection={connection} onSent={bumpRefresh} />
+
+      <TipJarPanel connection={connection} />
 
       <CounterPanel connection={connection} />
 
