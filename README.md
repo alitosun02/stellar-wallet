@@ -7,7 +7,7 @@ A production-structured **Stellar Testnet dApp**: multi-wallet support (**Freigh
 Built level-by-level for the **Stellar Journey to Mastery: Monthly Builder Challenges** (Builder Track):
 ⚪️ Level 1 → 🟡 Level 2 → 🟠 **Level 3 (current)**
 
-- **Live demo:** _Vercel deploy pending — link will be added after first deployment_
+- **Live demo:** **[stellar-wallet-steel.vercel.app](https://stellar-wallet-steel.vercel.app/)**
 - **Demo video (1–2 min):** [docs/demo.mp4](docs/demo.mp4)
 
 ---
@@ -34,9 +34,9 @@ Built level-by-level for the **Stellar Journey to Mastery: Monthly Builder Chall
 | Contract deployment addresses | TipJar: [`CBEI7CRINGW5S4VT5MOD4NOVO6ZIJKCVDOHUAPFF6NHVGRLYUQSMLJRJ`](https://stellar.expert/explorer/testnet/contract/CBEI7CRINGW5S4VT5MOD4NOVO6ZIJKCVDOHUAPFF6NHVGRLYUQSMLJRJ) · Counter: [`CCHEGI3ARKF6LGGLKQDBIPXSPD76DXHGOXO7SADH6ZUB3LUJ7YFGP437`](https://stellar.expert/explorer/testnet/contract/CCHEGI3ARKF6LGGLKQDBIPXSPD76DXHGOXO7SADH6ZUB3LUJ7YFGP437) |
 | Contract interaction tx hashes | donate (browser): [`a4cff8f45e00b3ab2d3aa90b2380fb1220047ba548561493dff7537c4600960a`](https://stellar.expert/explorer/testnet/tx/a4cff8f45e00b3ab2d3aa90b2380fb1220047ba548561493dff7537c4600960a) · donate (CLI, paired transfer+Donation events): [`d8bdcd13ada2d18c8095a2c11ed4727150b2b9718d31ad6dfb8df259529760e7`](https://stellar.expert/explorer/testnet/tx/d8bdcd13ada2d18c8095a2c11ed4727150b2b9718d31ad6dfb8df259529760e7) · counter increment: [`fcb88855033354511e813c62d7378509c07ac8278c6344d39a5b97fe37b26a29`](https://stellar.expert/explorer/testnet/tx/fcb88855033354511e813c62d7378509c07ac8278c6344d39a5b97fe37b26a29) |
 | Mobile responsive UI screenshot | below |
-| CI pipeline screenshot | below (added after first push triggers Actions) |
+| CI pipeline screenshot | below — [run #1](https://github.com/alitosun02/stellar-wallet/actions), 3/3 jobs passed |
 | Test output screenshot (3+ passing) | below — 23 passing total |
-| Live demo link | pending Vercel deploy |
+| Live demo link | [stellar-wallet-steel.vercel.app](https://stellar-wallet-steel.vercel.app/) (Vercel, auto-deploys `main`) |
 | Demo video | [docs/demo.mp4](docs/demo.mp4) (76s) |
 
 ### Level 3 Screenshots
@@ -47,8 +47,8 @@ Built level-by-level for the **Stellar Journey to Mastery: Monthly Builder Chall
 #### Test output — 16 frontend + 7 contract tests passing
 ![Test output](docs/screenshots/08-test-output.png)
 
-#### CI pipeline
-_Screenshot will be added after the workflow runs on GitHub._
+#### CI pipeline — all jobs green (frontend + contract matrix)
+![CI pipeline](docs/screenshots/09-ci-pipeline.png)
 
 ---
 
