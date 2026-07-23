@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        contract: [counter, donation]
+        contract: [counter, donation, campaign]
     defaults:
       run:
         working-directory: contracts/${{ matrix.contract }}

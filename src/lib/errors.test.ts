@@ -63,6 +63,21 @@ describe("mapStellarError", () => {
     );
   });
 
+  it("translates Soroban contract error codes into user-facing messages", () => {
+    const ended = mapStellarError(
+      new Error("HostError: Error(Contract, #7) invoking function donate")
+    );
+    expect(ended.type).toBe("CONTRACT_REJECTED");
+    expect(ended.message).toMatch(/ended/i);
+
+    const goalNotReached = mapStellarError(new Error("Error(Contract, #8)"));
+    expect(goalNotReached.message).toMatch(/goal has not been reached/i);
+
+    const unknownCode = mapStellarError(new Error("Error(Contract, #99)"));
+    expect(unknownCode.type).toBe("CONTRACT_REJECTED");
+    expect(unknownCode.message).toMatch(/code 99/);
+  });
+
   it("falls back to UNKNOWN with the original message", () => {
     const result = mapStellarError(new Error("something unexpected"));
     expect(result.type).toBe("UNKNOWN");
