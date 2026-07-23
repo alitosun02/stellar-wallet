@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/i18n/useLocale";
 
 export function CopyField({
   label,
@@ -11,10 +12,9 @@ export function CopyField({
   value: string;
   masked?: boolean;
 }) {
+  const t = useT();
   const [revealed, setRevealed] = useState(!masked);
   const [copied, setCopied] = useState(false);
-
-  const displayValue = revealed ? value : "•".repeat(24);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(value);
@@ -29,7 +29,7 @@ export function CopyField({
       </span>
       <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2">
         <code className="flex-1 truncate font-mono text-sm text-slate-200">
-          {displayValue}
+          {revealed ? value : "•".repeat(24)}
         </code>
         {masked && (
           <button
@@ -37,7 +37,7 @@ export function CopyField({
             onClick={() => setRevealed((r) => !r)}
             className="shrink-0 text-xs font-medium text-cyan-400 hover:text-cyan-300"
           >
-            {revealed ? "Gizle" : "Göster"}
+            {revealed ? t("common.hide") : t("common.show")}
           </button>
         )}
         <button
@@ -45,7 +45,7 @@ export function CopyField({
           onClick={handleCopy}
           className="shrink-0 text-xs font-medium text-cyan-400 hover:text-cyan-300"
         >
-          {copied ? "Kopyalandı!" : "Kopyala"}
+          {copied ? t("common.copied") : t("common.copy")}
         </button>
       </div>
     </div>

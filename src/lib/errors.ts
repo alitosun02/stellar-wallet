@@ -14,6 +14,8 @@ export type StellarErrorType =
   | "INSUFFICIENT_BALANCE"
   | "DESTINATION_NOT_FOUND"
   | "SOURCE_NOT_FOUND"
+  | "CONTRACT_REJECTED"
+  | "VALIDATION"
   | "UNKNOWN";
 
 export interface MappedError {
@@ -35,9 +37,39 @@ interface HorizonErrorShape {
   };
 }
 
+/**
+ * Kampanya kontratının `#[contracterror]` kodları (contracts/campaign/src/lib.rs).
+ * Soroban hataları `Error(Contract, #N)` biçiminde geldiği için burada
+ * kullanıcı diline çevrilir.
+ */
+const CAMPAIGN_CONTRACT_ERRORS: Record<number, string> = {
+  1: "This contract is already initialized.",
+  2: "The contract is not initialized yet.",
+  3: "Amount must be greater than zero.",
+  4: "Funding goal must be greater than zero.",
+  5: "The deadline must be in the future.",
+  6: "Campaign not found.",
+  7: "This campaign has ended and no longer accepts support.",
+  8: "The funding goal has not been reached yet, so funds cannot be withdrawn.",
+  9: "The funds for this campaign were already withdrawn.",
+  10: "The campaign is still running — refunds are only available after it ends.",
+  11: "This campaign reached its goal, so refunds are not available.",
+  12: "There is nothing to refund for this wallet.",
+};
+
 export function mapStellarError(error: unknown): MappedError {
   const raw = error instanceof Error ? error.message : String(error);
   const lower = raw.toLowerCase();
+
+  // Soroban kontrat hatası: Error(Contract, #7)
+  const contractCode = raw.match(/Error\(Contract,\s*#(\d+)\)/);
+  if (contractCode) {
+    const code = Number(contractCode[1]);
+    return {
+      type: "CONTRACT_REJECTED",
+      message: CAMPAIGN_CONTRACT_ERRORS[code] ?? `The contract rejected this call (code ${code}).`,
+    };
+  }
 
   // 1) Cüzdan bulunamadı (Freighter eklentisi yok)
   if (lower.includes("freighter eklentisi bulunamadı") || lower.includes("wallet not found")) {

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { AppShell } from "@/components/layout/AppShell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,9 +16,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stellar Wallet — Rise In Builder Challenge",
+  title: "FanFuel — Goal-based creator funding on Stellar",
   description:
-    "Stellar testnet üzerinde çoklu cüzdan desteği, smart contract etkileşimi ve gerçek zamanlı senkronizasyon sunan cüzdan uygulaması.",
+    "Fund creators in seconds with on-chain escrow. Goal-based campaigns on Stellar: reach the goal and the creator withdraws, miss it and every supporter claims a full refund.",
+  openGraph: {
+    title: "FanFuel — Goal-based creator funding on Stellar",
+    description:
+      "Goal-based crowdfunding with on-chain escrow and automatic refunds, built on Stellar.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -25,11 +34,13 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="tr"
+      lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-slate-950 text-slate-100">
-        {children}
+      <body className="flex min-h-full flex-col bg-slate-950 text-slate-100">
+        <AppShell>{children}</AppShell>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
