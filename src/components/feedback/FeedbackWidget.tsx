@@ -68,14 +68,14 @@ export function FeedbackWidget() {
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/80 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           onClick={(e) => e.target === e.currentTarget && setOpen(false)}
         >
           <form
             onSubmit={handleSubmit}
-            className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+            className="mx-auto my-auto w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4">
               <h2 className="text-lg font-semibold text-white">{t("feedback.title")}</h2>

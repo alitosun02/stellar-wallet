@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useWallet } from "@/hooks/useWallet";
 import { useT } from "@/i18n/useLocale";
 import { mapStellarError } from "@/lib/errors";
@@ -34,6 +35,20 @@ export function ConnectWalletDialog({ onClose }: { onClose: () => void }) {
     }
   }
 
+  // Escape ile kapat + arka planın kaymasını engelle
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
   function handleImport(e: React.FormEvent) {
     e.preventDefault();
     if (!isValidSecretKey(secret)) {
@@ -43,14 +58,21 @@ export function ConnectWalletDialog({ onClose }: { onClose: () => void }) {
     finish({ kind: "local", ...walletFromSecret(secret) });
   }
 
-  return (
+  // Portal ile doğrudan <body>'ye render edilir: header'daki `backdrop-blur`
+  // (backdrop-filter) aksi hâlde `fixed` için yeni bir konumlandırma bağlamı
+  // yaratıp diyaloğu ekranın dışına taşıyor.
+  const dialog = (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/80 p-4 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+      <div
+        className="flex min-h-full items-end justify-center sm:items-center"
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+      >
+        <div className="my-auto w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-lg font-semibold text-white">{t("connect.title")}</h2>
           <button
@@ -128,10 +150,13 @@ export function ConnectWalletDialog({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        <p className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-          {t("connect.disclaimer")}
-        </p>
+          <p className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            {t("connect.disclaimer")}
+          </p>
+        </div>
       </div>
     </div>
   );
+
+  return typeof document === "undefined" ? dialog : createPortal(dialog, document.body);
 }
