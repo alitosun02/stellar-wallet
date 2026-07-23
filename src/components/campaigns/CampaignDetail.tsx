@@ -285,7 +285,10 @@ export function CampaignDetail({ campaignId }: { campaignId: number }) {
         ) : (
           <ul className="mt-3 divide-y divide-slate-800">
             {(eventsState.data ?? []).map((event) => (
-              <li key={event.id} className="flex items-center justify-between gap-3 py-2">
+              <li
+                key={event.id}
+                className="flex flex-col items-start gap-1 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+              >
                 <span className="text-sm text-slate-300">
                   <span className="font-mono text-xs text-slate-500">
                     {truncateAddress(event.actor)}
@@ -306,7 +309,7 @@ export function CampaignDetail({ campaignId }: { campaignId: number }) {
                     </span>
                   )}
                   {event.kind === "created" && (
-                    <span className="text-slate-400">{t("home.step1Title")}</span>
+                    <span className="text-slate-400">{t("campaign.eventCreated")}</span>
                   )}
                 </span>
                 <a

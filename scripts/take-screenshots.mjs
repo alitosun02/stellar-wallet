@@ -1,28 +1,24 @@
 /**
- * README için ekran görüntülerini üretir (docs/screenshots/).
+ * README ekran görüntülerini üretir (docs/screenshots/).
  * Kullanım: dev sunucusu 3000 portunda çalışırken `node scripts/take-screenshots.mjs`
  *
- * Not: Freighter bir tarayıcı eklentisi olduğundan headless ortamda çalıştırılamaz;
- * "bağlı cüzdan" görüntüleri uygulamanın yerel test cüzdanı moduyla alınır.
- * Freighter bağlantısı aynı dashboard'u açar (sadece rozet "Freighter" yazar).
+ * Not: Freighter bir tarayıcı eklentisi olduğundan headless ortamda çalışmaz;
+ * görüntüler yerel test cüzdanı moduyla alınır. Freighter bağlantısı aynı
+ * arayüzü açar, yalnızca imza eklentide atılır.
  */
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
-import { Horizon, Keypair, Networks, Operation, Asset, BASE_FEE, TransactionBuilder } from "@stellar/stellar-sdk";
 
 const APP_URL = "http://localhost:3000";
-const OUT_DIR = new URL("../docs/screenshots/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+const OUT_DIR = new URL("../docs/screenshots/", import.meta.url).pathname.replace(
+  /^\/([A-Za-z]:)/,
+  "$1"
+);
 
 mkdirSync(OUT_DIR, { recursive: true });
 
-// Ödeme demosu için fonlanmış bir hedef hesap hazırla
-async function prepareDestination() {
-  const kp = Keypair.random();
-  const res = await fetch(`https://friendbot.stellar.org?addr=${kp.publicKey()}`);
-  if (!res.ok) throw new Error("Friendbot destination funding failed");
-  return kp.publicKey();
-}
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const setReactValue = (el, value) => {
   const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), "value").set;
@@ -30,209 +26,142 @@ const setReactValue = (el, value) => {
   el.dispatchEvent(new Event("input", { bubbles: true }));
 };
 
-async function main() {
-  const destination = await prepareDestination();
-  console.log("destination funded:", destination);
+async function clickText(page, text, scope = "body") {
+  await page.evaluate(
+    ({ text, scope }) => {
+      const root = document.querySelector(scope) ?? document.body;
+      const btn = [...root.querySelectorAll("button, a")].find((b) =>
+        b.textContent.includes(text)
+      );
+      if (!btn) throw new Error(`button not found: ${text}`);
+      btn.click();
+    },
+    { text, scope }
+  );
+  await sleep(600);
+}
 
+async function setLocale(page, locale) {
+  await page.evaluate((locale) => {
+    const btn = [...document.querySelectorAll("header button")].find(
+      (b) => b.textContent.trim() === locale
+    );
+    btn?.click();
+  }, locale);
+  await sleep(400);
+}
+
+async function connectTestWallet(page) {
+  await clickText(page, "Connect wallet", "header");
+  await clickText(page, "Create test wallet");
+  await page.waitForFunction(() => !!sessionStorage.getItem("stellar-wallet-session"));
+  const publicKey = await page.evaluate(
+    () => JSON.parse(sessionStorage.getItem("stellar-wallet-session")).publicKey
+  );
+  const funded = await fetch(`https://friendbot.stellar.org?addr=${publicKey}`);
+  if (!funded.ok) throw new Error("friendbot funding failed");
+  return publicKey;
+}
+
+async function main() {
   const browser = await puppeteer.launch({
     executablePath: EDGE,
     headless: "new",
-    defaultViewport: { width: 1280, height: 900 },
+    defaultViewport: { width: 1280, height: 900, deviceScaleFactor: 1.5 },
     args: ["--no-first-run", "--disable-extensions"],
   });
   const page = await browser.newPage();
+
   await page.goto(APP_URL, { waitUntil: "networkidle2" });
-
-  // 1) Cüzdan bağlantı ekranı
-  await page.waitForSelector("button");
-  await page.screenshot({ path: `${OUT_DIR}/01-connect-wallet.png` });
-  console.log("saved 01-connect-wallet.png");
-
-  // Yerel cüzdan oluştur (headless'ta Freighter eklentisi çalışmaz)
-  await page.evaluate(() => {
-    const btn = [...document.querySelectorAll("button")].find((b) =>
-      b.textContent.includes("Yeni Cüzdan Oluştur")
-    );
-    btn.click();
+  await page.waitForSelector("header button");
+  await setLocale(page, "en");
+  await page.waitForFunction(() => document.body.textContent.includes("raised of"), {
+    timeout: 30000,
   });
-  await page.waitForFunction(() => !!sessionStorage.getItem("stellar-wallet-session"));
+  await sleep(1200);
 
-  // Friendbot ile fonla ve bakiyeyi bekle
-  await page.waitForFunction(() =>
-    [...document.querySelectorAll("button")].some((b) => b.textContent.includes("Friendbot"))
-  );
-  await page.evaluate(() => {
-    const btn = [...document.querySelectorAll("button")].find((b) =>
-      b.textContent.includes("Friendbot")
-    );
-    btn.click();
+  // 1) Ana sayfa — ürün arayüzü
+  await page.screenshot({ path: `${OUT_DIR}/10-product-home.png`, fullPage: true });
+  console.log("saved 10-product-home.png");
+
+  // 2) Cüzdan bağla + fonla
+  await connectTestWallet(page);
+  await sleep(800);
+
+  // 3) Kampanya detayı + destek akışı
+  await page.goto(`${APP_URL}/campaigns/0`, { waitUntil: "networkidle2" });
+  // Not: başlıklar CSS ile büyütülüyor; textContent özgün yazımını korur
+  await page.waitForFunction(() => document.body.textContent.includes("Support this campaign"), {
+    timeout: 30000,
   });
-  await page.waitForFunction(
-    () => document.body.textContent.includes("10.000") || document.body.textContent.includes("10,000"),
-    { timeout: 30000 }
-  );
-
-  // 2) Bağlı cüzdan + bakiye
-  await page.screenshot({ path: `${OUT_DIR}/02-wallet-connected-balance.png` });
-  console.log("saved 02-wallet-connected-balance.png");
-
-  // Ödeme formunu doldur ve gönder
   await page.evaluate(
-    ({ destination, setValSrc }) => {
+    ({ setValSrc }) => {
       const setVal = eval(setValSrc);
-      const panel = [...document.querySelectorAll("h2")]
-        .find((h) => h.textContent.includes("Ödeme Gönder"))
-        .closest("div.rounded-2xl");
-      const inputs = panel.querySelectorAll("input");
-      setVal(inputs[0], destination);
-      setVal(inputs[1], "100");
-      setVal(inputs[2], "level1 demo");
-      const btn = [...panel.querySelectorAll("button")].find((b) =>
-        b.textContent.includes("Gönder")
-      );
-      btn.click();
+      setVal(document.querySelector("main input[type=number]"), "75");
     },
-    { destination, setValSrc: `(${setReactValue.toString()})` }
+    { setValSrc: `(${setReactValue.toString()})` }
   );
-
-  // Başarı mesajı + hash bekle
-  await page.waitForFunction(() => document.body.textContent.includes("İşlem başarılı"), {
-    timeout: 45000,
+  await sleep(400);
+  await clickText(page, "Support", "main");
+  await page.waitForFunction(() => document.body.textContent.includes("✅ Success"), {
+    timeout: 90000,
   });
-  // Ödeme paneline kaydır
-  await page.evaluate(() => {
-    [...document.querySelectorAll("h2")]
-      .find((h) => h.textContent.includes("Ödeme Gönder"))
-      .scrollIntoView({ block: "center" });
-  });
-  await new Promise((r) => setTimeout(r, 500));
+  await sleep(1500);
+  await page.screenshot({ path: `${OUT_DIR}/11-campaign-support.png`, fullPage: true });
+  console.log("saved 11-campaign-support.png");
 
-  // 3) Başarılı işlem + hash
-  await page.screenshot({ path: `${OUT_DIR}/03-transaction-success.png` });
-  console.log("saved 03-transaction-success.png");
-
-  // ---- Level 2 görüntüleri ----
-
-  // 4) Soroban kontrat paneli: bakiye oku + kontrat üzerinden transfer
-  await page.evaluate(() => {
-    const panel = [...document.querySelectorAll("h2")]
-      .find((h) => h.textContent.includes("Smart Contract"))
-      .closest("div.rounded-2xl");
-    const readBtn = [...panel.querySelectorAll("button")].find((b) =>
-      b.textContent.includes("Kontrattan Bakiye")
-    );
-    readBtn.click();
-  });
-  await page.waitForFunction(
-    () => {
-      const panel = [...document.querySelectorAll("h2")]
-        .find((h) => h.textContent.includes("Smart Contract"))
-        .closest("div.rounded-2xl");
-      return /XLM/.test(panel.textContent) && !panel.textContent.includes("Okunuyor");
-    },
-    { timeout: 30000 }
-  );
-
+  // 4) Kampanya oluşturma ekranı
+  await page.goto(`${APP_URL}/create`, { waitUntil: "networkidle2" });
+  await sleep(1000);
   await page.evaluate(
-    ({ destination, setValSrc }) => {
+    ({ setValSrc }) => {
       const setVal = eval(setValSrc);
-      const panel = [...document.querySelectorAll("h2")]
-        .find((h) => h.textContent.includes("Smart Contract"))
-        .closest("div.rounded-2xl");
-      const inputs = panel.querySelectorAll("input");
-      setVal(inputs[0], destination);
-      setVal(inputs[1], "15");
-      const btn = [...panel.querySelectorAll("button")].find((b) =>
-        b.textContent.includes("Transfer Et")
-      );
-      btn.click();
+      const inputs = document.querySelectorAll("main input");
+      setVal(inputs[0], "Weekly Stellar dev newsletter");
+      setVal(inputs[1], "300");
     },
-    { destination, setValSrc: `(${setReactValue.toString()})` }
+    { setValSrc: `(${setReactValue.toString()})` }
   );
-  await page.waitForFunction(
-    () => document.body.textContent.includes("Kontrat transferi başarılı"),
-    { timeout: 60000 }
-  );
+  await sleep(400);
+  await page.screenshot({ path: `${OUT_DIR}/12-create-campaign.png` });
+  console.log("saved 12-create-campaign.png");
+
+  // 5) Geri bildirim widget'ı
+  await page.goto(APP_URL, { waitUntil: "networkidle2" });
+  await sleep(800);
+  await clickText(page, "Feedback");
+  await sleep(600);
   await page.evaluate(() => {
-    [...document.querySelectorAll("h2")]
-      .find((h) => h.textContent.includes("Smart Contract"))
-      .scrollIntoView({ block: "center" });
+    const stars = [...document.querySelectorAll('[role=dialog] button[aria-label]')];
+    stars[3]?.click();
+    const textarea = document.querySelector("[role=dialog] textarea");
+    const setter = Object.getOwnPropertyDescriptor(
+      Object.getPrototypeOf(textarea),
+      "value"
+    ).set;
+    setter.call(textarea, "The refund guarantee is what makes this trustworthy.");
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
   });
-  await new Promise((r) => setTimeout(r, 500));
-  await page.screenshot({ path: `${OUT_DIR}/04-soroban-contract.png` });
-  console.log("saved 04-soroban-contract.png");
+  await sleep(500);
+  await page.screenshot({ path: `${OUT_DIR}/13-feedback-widget.png` });
+  console.log("saved 13-feedback-widget.png");
 
-  // 4b) Deploy ettiğimiz Counter kontratı: increment + tx durumu + eventler
-  await page.evaluate(() => {
-    const panel = [...document.querySelectorAll("h2")]
-      .find((h) => h.textContent.includes("Counter"))
-      .closest("div.rounded-2xl");
-    const btn = [...panel.querySelectorAll("button")].find((b) =>
-      b.textContent.includes("Artır")
-    );
-    btn.click();
-  });
-  await page.waitForFunction(
-    () => {
-      const panel = [...document.querySelectorAll("h2")]
-        .find((h) => h.textContent.includes("Counter"))
-        .closest("div.rounded-2xl");
-      return panel.textContent.includes("✅ Başarılı");
-    },
-    { timeout: 90000 }
-  );
-  await page.evaluate(() => {
-    [...document.querySelectorAll("h2")]
-      .find((h) => h.textContent.includes("Counter"))
-      .scrollIntoView({ block: "center" });
-  });
-  await new Promise((r) => setTimeout(r, 500));
-  await page.screenshot({ path: `${OUT_DIR}/06-counter-contract.png` });
-  console.log("saved 06-counter-contract.png");
-
-  // 5) Gerçek zamanlı bildirim: dışarıdan ödeme gönder, toast'ı yakala
-  const walletAddress = await page.evaluate(
-    () => JSON.parse(sessionStorage.getItem("stellar-wallet-session")).publicKey
-  );
-  const horizon = new Horizon.Server("https://horizon-testnet.stellar.org");
-  const senderKp = Keypair.random();
-  await fetch(`https://friendbot.stellar.org?addr=${senderKp.publicKey()}`);
-  const senderAcc = await horizon.loadAccount(senderKp.publicKey());
-  const liveTx = new TransactionBuilder(senderAcc, {
-    fee: BASE_FEE,
-    networkPassphrase: Networks.TESTNET,
-  })
-    .addOperation(
-      Operation.payment({ destination: walletAddress, asset: Asset.native(), amount: "42" })
-    )
-    .setTimeout(60)
-    .build();
-  liveTx.sign(senderKp);
-  await horizon.submitTransaction(liveTx);
-  console.log("external live payment submitted");
-
-  try {
-    await page.waitForSelector("div.fixed.bottom-6", { timeout: 30000 });
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await new Promise((r) => setTimeout(r, 300));
-    await page.screenshot({ path: `${OUT_DIR}/05-realtime-notification.png` });
-    console.log("saved 05-realtime-notification.png");
-  } catch {
-    console.log("toast yakalanamadı, 05 atlandı (öncekini koru)");
-  }
-
-  // 7) Mobil uyumlu görünüm (375x812) — tüm dashboard tek uzun ekran görüntüsü
+  // 6) Mobil görünüm (Türkçe — iki dilli desteği de gösterir)
   await page.setViewport({ width: 375, height: 812, deviceScaleFactor: 2 });
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await new Promise((r) => setTimeout(r, 800));
-  await page.screenshot({ path: `${OUT_DIR}/07-mobile-responsive.png`, fullPage: true });
-  console.log("saved 07-mobile-responsive.png");
+  await page.goto(`${APP_URL}/campaigns/0`, { waitUntil: "networkidle2" });
+  await setLocale(page, "tr");
+  await page.waitForFunction(() => document.body.textContent.includes("Bu kampanyayı destekle"), {
+    timeout: 30000,
+  });
+  await sleep(1000);
+  await page.screenshot({ path: `${OUT_DIR}/14-mobile-responsive.png`, fullPage: true });
+  console.log("saved 14-mobile-responsive.png");
 
   await browser.close();
   console.log("done");
 }
 
-main().catch((e) => {
-  console.error(e);
+main().catch((error) => {
+  console.error(error);
   process.exit(1);
 });

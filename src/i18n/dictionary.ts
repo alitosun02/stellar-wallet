@@ -86,6 +86,7 @@ export const dictionary = {
     "campaign.linkCopied": "Campaign link copied!",
     "campaign.recentSupport": "Recent support",
     "campaign.noSupportYet": "No supporters yet — be the first.",
+    "campaign.eventCreated": "created this campaign",
     "campaign.selfDonateHint": "This is your campaign. You can still support it.",
 
     "create.title": "Start a campaign",
@@ -240,6 +241,7 @@ export const dictionary = {
     "campaign.linkCopied": "Kampanya bağlantısı kopyalandı!",
     "campaign.recentSupport": "Son destekler",
     "campaign.noSupportYet": "Henüz destekçi yok — ilk sen ol.",
+    "campaign.eventCreated": "kampanyayı oluşturdu",
     "campaign.selfDonateHint": "Bu senin kampanyan. Yine de destek olabilirsin.",
 
     "create.title": "Kampanya başlat",

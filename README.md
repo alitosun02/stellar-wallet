@@ -1,83 +1,104 @@
-# Stellar Wallet & TipJar dApp — Rise In Builder Challenge
+# FanFuel — Goal-based creator funding on Stellar
 
 [![CI](https://github.com/alitosun02/stellar-wallet/actions/workflows/ci.yml/badge.svg)](https://github.com/alitosun02/stellar-wallet/actions/workflows/ci.yml)
 
-A production-structured **Stellar Testnet dApp**: multi-wallet support (**Freighter**, Albedo, local test keypair), payments, **two custom Soroban smart contracts** (a donation TipJar with cross-contract token transfers, and a counter), real-time event synchronization, full test coverage (contracts + frontend), and CI/CD.
+**Live app: [stellar-wallet-steel.vercel.app](https://stellar-wallet-steel.vercel.app/)** ·
+**Demo video: [docs/demo.mp4](docs/demo.mp4)** (91s) ·
+**Try it in 3 minutes: [docs/ONBOARDING.md](docs/ONBOARDING.md)**
 
-Built level-by-level for the **Stellar Journey to Mastery: Monthly Builder Challenges** (Builder Track):
-⚪️ Level 1 → 🟡 Level 2 → 🟠 **Level 3 (current)**
+FanFuel is a production-ready MVP for **all-or-nothing creator funding on Stellar**.
+Supporters fund campaigns with XLM; funds sit in a Soroban smart-contract **escrow**.
+Reach the goal → the creator withdraws. Miss it → **every supporter reclaims their full
+contribution**. No middlemen, no card rails, fees of a fraction of a cent.
 
-- **Live demo:** **[stellar-wallet-steel.vercel.app](https://stellar-wallet-steel.vercel.app/)**
-- **Demo video (1–2 min):** [docs/demo.mp4](docs/demo.mp4)
+Built for the **Stellar Journey to Mastery: Monthly Builder Challenges** — Builder Track:
+⚪️ Level 1 → 🟡 Level 2 → 🟠 Level 3 → 🟢 **Level 4 (current)**
 
 ---
 
-## 🟠 Level 3 (Orange Belt) — Requirements Coverage
+## Why this exists
+
+Creators in payment-underserved markets (Türkiye among them) cannot use Stripe-based
+platforms — Patreon and Buy Me a Coffee are unavailable or restricted, charge 5–10% plus
+card fees, enforce payout minimums, and exclude global micro-supporters. A $0.50
+cross-border tip is economically impossible on card rails.
+
+On Stellar it costs a fraction of a cent and settles in ~5 seconds. And because the escrow
+logic lives in a smart contract, supporters don't have to trust the platform *or* the
+creator: if the goal isn't met, the refund is enforced by the contract, not by a policy.
+
+## 🟢 Level 4 — Requirements Coverage
 
 | Requirement | Implementation |
 |---|---|
-| **Advanced smart contract development** | [`contracts/donation`](contracts/donation): typed errors (`contracterror`), enum storage keys, instance+persistent storage, TTL management, admin auth, typed events (`contractevent`) |
-| **Inter-contract communication** | `donate()` collects funds by calling the **XLM Stellar Asset Contract's `transfer`** cross-contract (`token::Client`); `withdraw()` does the reverse. Verified in tests via token balances and on-chain via paired `transfer` + `Donation` events in one tx |
-| **Event streaming & real-time updates** | Horizon SSE payment stream (balance/history auto-update + toast) and Soroban RPC `getEvents` polling for `Donation`/`Increment` contract events |
-| **CI/CD pipeline** | [GitHub Actions](.github/workflows/ci.yml): frontend job (eslint, tsc, vitest, next build) + contract matrix job (cargo test + wasm build for both contracts); Vercel auto-deploys `main` (CD) |
-| **Smart contract deployment workflow** | [`scripts/deploy-contracts.sh`](scripts/deploy-contracts.sh): test → build → deploy → init, repeatable per environment |
-| **Mobile responsive frontend** | Fully responsive at 375px — see screenshot below |
-| **Error handling & loading states** | Typed error classification ([`src/lib/errors.ts`](src/lib/errors.ts), 5 categories), tx lifecycle states (building/signing/pending/success/failed), skeleton loaders |
-| **Tests for contracts and frontend** | **7 contract tests** (6 donation + 1 counter, incl. cross-contract balance assertions) + **16 frontend tests** (vitest + Testing Library) |
-| **Production-ready architecture** | Layered: pure `lib/` modules (SDK-free `units.ts` testable in isolation), typed contract clients, single signing interface for all wallets, client-only rendering for key material |
-| **Documentation & demo** | This README + demo video + inline docs |
+| **Production-ready MVP** | Full product: browse → campaign detail → support → create → withdraw/refund, deployed on Vercel with CI/CD |
+| **Stable frontend + contract architecture** | Layered `lib/` (SDK-isolated pure modules), typed contract clients, `useSyncExternalStore` state (SSR-safe, no hydration mismatch), 4 contracts on testnet |
+| **Mobile responsive UI** | Every route works at 375px — [screenshot](#mobile-responsive-ui-375px) |
+| **Loading states & error handling** | Skeleton loaders everywhere, explicit tx lifecycle (building → signing → pending → success/failed), 8 typed error categories incl. per-code Soroban contract errors, global error boundary |
+| **10+ real users onboarded** | Onboarding guide in [docs/ONBOARDING.md](docs/ONBOARDING.md); on-chain proof auto-generated → [docs/USER_PROOF.md](docs/USER_PROOF.md) |
+| **Proof of wallet interactions** | Every interaction is a verifiable on-chain contract call — see [USER_PROOF.md](docs/USER_PROOF.md) (generated by `scripts/collect-user-proof.mjs` straight from contract events) |
+| **User feedback collection** | In-app feedback widget → `/api/feedback` → structured logs + optional webhook; summary in [docs/FEEDBACK.md](docs/FEEDBACK.md) |
+| **Production deployment** | Vercel, auto-deploys `main` |
+| **Monitoring & analytics** | Vercel Analytics (page + custom product events), Speed Insights (Web Vitals), client error reporting → `/api/log` (+ optional alert webhook) |
+| **Optimized UX** | Bilingual EN/TR, one-click test wallet, Friendbot funding in-app, share links, live-updating campaign state |
+| **Project structure & docs** | See [Architecture](#-architecture) — this README, onboarding, feedback and proof docs |
+| **Contracts on testnet** | 3 custom contracts deployed (addresses below) |
+| **15+ meaningful commits** | See git history |
+| **Tests** | **36 frontend** (vitest + Testing Library) + **18 contract** (Rust) = **54 passing** |
 
-### Submission checklist artifacts
+### Deployed contracts (Stellar Testnet)
 
-| Item | Where |
-|---|---|
-| Contract deployment addresses | TipJar: [`CBEI7CRINGW5S4VT5MOD4NOVO6ZIJKCVDOHUAPFF6NHVGRLYUQSMLJRJ`](https://stellar.expert/explorer/testnet/contract/CBEI7CRINGW5S4VT5MOD4NOVO6ZIJKCVDOHUAPFF6NHVGRLYUQSMLJRJ) · Counter: [`CCHEGI3ARKF6LGGLKQDBIPXSPD76DXHGOXO7SADH6ZUB3LUJ7YFGP437`](https://stellar.expert/explorer/testnet/contract/CCHEGI3ARKF6LGGLKQDBIPXSPD76DXHGOXO7SADH6ZUB3LUJ7YFGP437) |
-| Contract interaction tx hashes | donate (browser): [`a4cff8f45e00b3ab2d3aa90b2380fb1220047ba548561493dff7537c4600960a`](https://stellar.expert/explorer/testnet/tx/a4cff8f45e00b3ab2d3aa90b2380fb1220047ba548561493dff7537c4600960a) · donate (CLI, paired transfer+Donation events): [`d8bdcd13ada2d18c8095a2c11ed4727150b2b9718d31ad6dfb8df259529760e7`](https://stellar.expert/explorer/testnet/tx/d8bdcd13ada2d18c8095a2c11ed4727150b2b9718d31ad6dfb8df259529760e7) · counter increment: [`fcb88855033354511e813c62d7378509c07ac8278c6344d39a5b97fe37b26a29`](https://stellar.expert/explorer/testnet/tx/fcb88855033354511e813c62d7378509c07ac8278c6344d39a5b97fe37b26a29) |
-| Mobile responsive UI screenshot | below |
-| CI pipeline screenshot | below — [run #1](https://github.com/alitosun02/stellar-wallet/actions), 3/3 jobs passed |
-| Test output screenshot (3+ passing) | below — 23 passing total |
-| Live demo link | [stellar-wallet-steel.vercel.app](https://stellar-wallet-steel.vercel.app/) (Vercel, auto-deploys `main`) |
-| Demo video | [docs/demo.mp4](docs/demo.mp4) (76s) |
+| Contract | Address | Purpose |
+|---|---|---|
+| **campaign** (Level 4) | [`CCUMBJRRHPBC6XRGCSK54NPY2IZ4EQGHAOL4B7XT5BUCHUYQKG2CLMUT`](https://stellar.expert/explorer/testnet/contract/CCUMBJRRHPBC6XRGCSK54NPY2IZ4EQGHAOL4B7XT5BUCHUYQKG2CLMUT) | Escrow, goals, deadlines, refunds |
+| donation (Level 3) | [`CBEI7CRINGW5S4VT5MOD4NOVO6ZIJKCVDOHUAPFF6NHVGRLYUQSMLJRJ`](https://stellar.expert/explorer/testnet/contract/CBEI7CRINGW5S4VT5MOD4NOVO6ZIJKCVDOHUAPFF6NHVGRLYUQSMLJRJ) | TipJar with cross-contract transfers |
+| counter (Level 2) | [`CCHEGI3ARKF6LGGLKQDBIPXSPD76DXHGOXO7SADH6ZUB3LUJ7YFGP437`](https://stellar.expert/explorer/testnet/contract/CCHEGI3ARKF6LGGLKQDBIPXSPD76DXHGOXO7SADH6ZUB3LUJ7YFGP437) | Auth + events demo |
 
-### Level 3 Screenshots
+**Example contract interactions (verifiable):**
+[campaign deploy](https://stellar.expert/explorer/testnet/tx/2697de38097b8f2ba5e946c7ed66c938bdefb62ebde8de32dd8a4b4f6bf09bd4) ·
+[campaign init](https://stellar.expert/explorer/testnet/tx/1c88f231ed419300f2dda03d82aae267becb095e420fe55eb76d5b2c227eb9cc) ·
+[donate from the browser](https://stellar.expert/explorer/testnet/tx/f9c324afdcc1a6797d15c21f4bc3f16d82a5be0d19211637b53e5e466aa83559)
 
-#### Mobile responsive UI (375px)
-<img src="docs/screenshots/07-mobile-responsive.png" alt="Mobile responsive UI" width="300" />
+## 📸 Screenshots
 
-#### Test output — 16 frontend + 7 contract tests passing
-![Test output](docs/screenshots/08-test-output.png)
+### Product UI
+![FanFuel home](docs/screenshots/10-product-home.png)
 
-#### CI pipeline — all jobs green (frontend + contract matrix)
+### Supporting a campaign — contract call with live tx status
+![Campaign support](docs/screenshots/11-campaign-support.png)
+
+### Creating a campaign
+![Create campaign](docs/screenshots/12-create-campaign.png)
+
+### Feedback collection
+![Feedback widget](docs/screenshots/13-feedback-widget.png)
+
+### Mobile responsive UI (375px)
+<img src="docs/screenshots/14-mobile-responsive.png" alt="Mobile responsive UI" width="300" />
+
+### CI/CD pipeline
 ![CI pipeline](docs/screenshots/09-ci-pipeline.png)
 
----
+### Test output
+![Test output](docs/screenshots/08-test-output.png)
 
-## The dApp
-
-### 💛 TipJar — donation contract with inter-contract calls
-
-Donations are collected by the `donation` contract calling the **XLM token contract (SAC)** cross-contract. State (total, per-donor cumulative, count) lives in the contract; every donation publishes a `Donation` event that the frontend streams into a live feed.
+## 🔐 How the escrow works
 
 ```text
-donor wallet ──sign──▶ donate(donor, amount)
-                          │  require_auth(donor)
-                          ├──▶ SAC.transfer(donor → jar)   [inter-contract]
-                          ├──▶ storage: total, count, per-donor
-                          └──▶ publish Donation{donor, amount, total}
+supporter ──sign──▶ donate(campaign_id, donor, amount)
+                        │ require_auth(donor)
+                        ├──▶ XLM SAC.transfer(donor → contract escrow)   [inter-contract]
+                        ├──▶ state: raised, supporters, per-donor contribution
+                        └──▶ event: Donation{donor, id, amount, raised}
+
+        raised >= goal  ──▶ creator: withdraw()      → SAC.transfer(escrow → creator)
+   deadline & raised<goal ──▶ supporter: claim_refund() → SAC.transfer(escrow → supporter)
 ```
 
-Admin-only `withdraw` moves funds out the same way (`SAC.transfer(jar → to)`).
-
-### 🔢 Counter — auth + events demo contract
-
-`increment` (requires the caller's signature, publishes `Increment`) and `get_count`. Read via `simulateTransaction`, written via `InvokeHostFunction` with the connected wallet's signature.
-
-### Wallet features (Levels 1–2)
-
-- Freighter connect/disconnect (`isConnected → setAllowed → getAddress → getNetwork`, signing via `signTransaction`), Albedo, or local test keypair
-- Friendbot funding, balance display, XLM payments with full tx hash feedback
-- Real-time payment stream (Horizon SSE): auto-refresh + live toast notifications
-- Transaction history with Stellar Expert links
+State machine: `Active → Succeeded → Withdrawn` or `Active → Failed → (refunds)`.
+Guard rails enforced on-chain and covered by tests: no donations after the deadline, no
+withdrawal before the goal, no double withdrawal, no refund while active or after success,
+no double refund.
 
 ## 🚀 Setup
 
@@ -89,71 +110,108 @@ npm run dev          # http://localhost:3000
 ```
 
 ```bash
-npm test             # frontend tests (16)
-npm run lint         # eslint
-cd contracts/donation && cargo test   # contract tests (6)
-cd contracts/counter  && cargo test   # contract tests (1)
+npm test                                # 36 frontend tests
+npm run lint                            # eslint
+npx tsc --noEmit                        # type check
+cd contracts/campaign && cargo test     # 11 contract tests
+cd contracts/donation && cargo test     # 6
+cd contracts/counter  && cargo test     # 1
 ```
 
-### Freighter setup
+### Environment variables (optional)
 
-1. Install [Freighter](https://freighter.app), create/import a wallet.
-2. Switch Freighter to **Testnet** (Settings → Network).
-3. Click **🚀 Freighter Cüzdanını Bağla** and approve.
-4. Fund via **Friendbot ile Fonla** if the account is new.
+| Variable | Purpose |
+|---|---|
+| `FEEDBACK_WEBHOOK_URL` | Mirror in-app feedback to Discord/Slack in real time |
+| `MONITORING_WEBHOOK_URL` | Alert channel for client-side errors |
+
+Without them the app still works: feedback and errors are written to server logs
+(visible in the Vercel dashboard).
 
 ### Contract deployment workflow
 
 ```bash
-# one-time: rustup target add wasm32v1-none && stellar CLI kurulumu
+rustup target add wasm32v1-none
 stellar keys generate deployer --network testnet --fund
-./scripts/deploy-contracts.sh deployer
-# sonra kontrat adreslerini src/lib/counter.ts ve src/lib/donation.ts'de güncelleyin
+./scripts/deploy-contracts.sh deployer     # test → build → deploy → init
+# then update the contract IDs in src/lib/*.ts
 ```
-
-CI runs the same test+build steps on every push; Vercel deploys `main` automatically (CD).
 
 ## 🏗️ Architecture
 
 ```
 contracts/
-  donation/                Soroban contract: cross-contract SAC transfers, typed errors, events (6 tests)
-  counter/                 Soroban contract: auth'd writes + events (1 test)
+  campaign/       Escrow contract: goals, deadlines, refunds, events (11 tests)
+  donation/       TipJar: cross-contract SAC transfers (6 tests)
+  counter/        Auth + events demo (1 test)
 src/
-  lib/units.ts             Pure XLM↔stroop conversions (SDK-free, unit tested)
-  lib/errors.ts            Typed error classification for all failure paths (unit tested)
-  lib/stellar.ts           Horizon: accounts, balances, payments, history
-  lib/wallets.ts           Multi-wallet: Freighter / Albedo / local + single sign interface
-  lib/soroban.ts           Soroban RPC server + SAC interaction
-  lib/counter.ts           Counter contract client (read / invoke with status / events)
-  lib/donation.ts          TipJar contract client (stats / donate / events)
-  hooks/usePaymentStream.ts  Horizon SSE stream hook
-  context/WalletContext.tsx  Session-scoped connection state
-  components/              Panels: onboarding, balance, payment, TipJar, Counter, SAC, history, toasts
-  app/                     Next.js App Router (client-only wallet UI, no SSR for key material)
+  app/
+    page.tsx                 Landing + campaign list
+    campaigns/[id]/page.tsx  Campaign detail: support, withdraw, refund
+    create/page.tsx          Campaign creation
+    wallet/page.tsx          Balance, payments, history, live stream
+    playground/page.tsx      Level 2–3 contracts, kept for reference
+    api/feedback/route.ts    Feedback intake (validated, logged, webhook)
+    api/log/route.ts         Client error intake (monitoring)
+  components/    ui primitives · layout shell · campaigns · wallet · feedback
+  hooks/         useWallet (session store) · useAsync (loading/error) · usePaymentStream (SSE)
+  i18n/          EN/TR dictionary + locale store (parity enforced by tests)
+  lib/
+    campaign.ts      Campaign contract client (read via simulation, write via invoke)
+    donation.ts      TipJar client
+    counter.ts       Counter client
+    stellar.ts       Horizon: accounts, balances, payments, history
+    wallets.ts       Freighter / Albedo / local — one signing interface
+    soroban.ts       Soroban RPC + native SAC
+    errors.ts        Typed error classification (incl. contract error codes)
+    units.ts         Pure XLM↔stroop math (SDK-free, unit tested)
+    analytics.ts     Event tracking + error reporting
+    persistentStore.ts  SSR-safe persistent state for useSyncExternalStore
 scripts/
-  deploy-contracts.sh      Contract deployment workflow
-  take-screenshots.mjs     Screenshot automation (puppeteer)
-  record-demo.mjs          Demo video recording (puppeteer screencast)
-.github/workflows/ci.yml   CI: lint + typecheck + 23 tests + builds (frontend & contracts)
+  deploy-contracts.sh      Repeatable contract deployment
+  collect-user-proof.mjs   On-chain proof of user interactions → docs/USER_PROOF.md
+  take-screenshots.mjs     Screenshot automation
+  record-demo.mjs          Demo video recording
 ```
 
-**Production practices:** typed contract errors surfaced as user-friendly categorized messages; explicit tx lifecycle everywhere; skeleton loading states; pure logic modules isolated from the SDK for fast unit tests; secrets never touch SSR (client-only rendering); session-scoped key storage with hard warnings; reproducible deploys via locked dependencies (`--locked`) and scripted workflow.
+**Production practices applied**
 
-## ⚠️ Security Note
+- **No hydration mismatches**: persistent state (wallet session, locale) is exposed through
+  `useSyncExternalStore` with a distinct server snapshot, instead of reading storage during render.
+- **Chain is the source of truth**: no database for money state; campaign data is read from the
+  contract and refreshed on an interval, so any client sees the same state.
+- **Read without a wallet**: campaign lists/details use read-only simulation, so the product is
+  browsable before connecting — a real conversion path, not a wallet gate.
+- **Errors are typed, not stringly**: Soroban `#[contracterror]` codes and Horizon `result_codes`
+  are mapped to user-facing messages in one place, with tests.
+- **Secrets never touch SSR**: key material lives only in tab-scoped session storage.
+- **Reproducible builds/deploys**: `--locked` cargo builds, scripted deployment, CI on every push.
 
-**Testnet only.** Never enter a mainnet secret key. Local-wallet mode keeps the secret in tab-scoped `sessionStorage` (wiped on close) — prefer Freighter/Albedo, where keys never touch the app.
+## 📊 Monitoring & analytics
+
+| Layer | Tool | What it captures |
+|---|---|---|
+| Product analytics | Vercel Analytics | Page views + custom events: `campaign_donate`, `campaign_created`, `campaign_share`, `feedback_submitted`, `friendbot_funded`, `payment_sent`, failures |
+| Performance | Vercel Speed Insights | Real-user Web Vitals |
+| Error tracking | `/api/log` + `ErrorBoundary` | Client exceptions with stack, route and user agent → structured server logs (+ optional webhook alert) |
+| User feedback | `/api/feedback` | Rating, message, contact, wallet, locale, page |
+
+## ⚠️ Security note
+
+**Stellar Testnet only.** Never enter a secret key that controls mainnet assets. The built-in
+test wallet keeps its key in tab-scoped `sessionStorage` (erased on close); prefer
+**Freighter** or **Albedo**, where keys never touch the app and signing happens in the wallet.
 
 ## 🗺️ Roadmap
 
-- 🟢 Level 4: production-ready MVP (idea submission + approval first)
-- 🔵 Level 5: 50 users, feedback iteration, pitch deck
-- ⚫️ Level 6: mainnet launch, 20+ real users, security review
+- 🔵 **Level 5**: scale to 50 users, iterate on feedback, pitch deck + demo
+- ⚫️ **Level 6**: mainnet launch, USDC support with anchor off-ramp, security review, 20+ real users
 
-## 📜 Level History
+## 📜 Level history
 
-| Level | Scope | Key commits |
-|---|---|---|
-| ⚪️ 1 | Wallet, balance, payments, Freighter connect | `a95ef22`, `2c7a193` |
-| 🟡 2 | Multi-wallet, counter contract deploy, real-time sync, typed errors | `ad06ce7`, `b14031a` |
-| 🟠 3 | Donation contract (inter-contract), tests, CI/CD, mobile, demo | `dc5c121`.. |
+| Level | Scope |
+|---|---|
+| ⚪️ 1 | Wallet, balances, payments, Freighter connect |
+| 🟡 2 | Multi-wallet, first deployed contract, real-time sync, typed errors |
+| 🟠 3 | Inter-contract donation escrow, CI/CD, contract + frontend tests, mobile, demo |
+| 🟢 4 | FanFuel product: campaign escrow contract, full product UI, i18n, analytics, monitoring, feedback, user onboarding |
